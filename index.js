@@ -8,7 +8,14 @@ const portNumber = 3000;
 const userRoutes = require('./routes/userRoutes.js');
 const basicAuthentication = require('./utils/authenticate');
 const controller = require('./controllers/profilepics.controller');
+var StatsD = require('node-statsd'),
+    client = new StatsD({
+      host: 'localhost',
+      port: 8125
+    });
 router.get("/healthz", (request,response) =>{
+    client.increment('healthz-api');
+    logger.info("Healthz API success");
     response.sendStatus(200);
 });
 const AWS = require('aws-sdk');
@@ -29,38 +36,7 @@ app.use(function(req, res, next) {
 app.post("/v1/user/self/pic",
   bodyParser.raw({type: ["image/jpeg", "image/png"], limit: "5mb"}),
   basicAuthentication(),
-controller.createProfilePic
-  // (req, res) => {
-  //   try {
-  //     console.log('----username-----', req.user.username);
-  //     fs.writeFile("./uploads/image.jpeg", req.body, (error) => {
-  //         console.log(req.body)
-  //       if (error) {
-  //           console.log(error)
-  //         throw error;
-  //       }
-  //       const fileContent = fs.readFileSync("./uploads/image.jpeg");
-  //       const params = {
-  //           Bucket: process.env.S3_BUCKET_NAME,
-  //           Key: 'profile.jpeg',
-  //           Body: fileContent
-  //       };
-  //       s3.upload(params, function(err, data) {
-  //           if (err) {
-  //               throw err;
-  //           }
-  //           console.log(`File uploaded successfully. ${data.Location}`);
-
-  //       }).then(() => {
-
-  //       });
-  //     });
-
-  //     res.sendStatus(200);
-  //   } catch (error) {
-  //     res.sendStatus(500);
-  //   }
-  );
+controller.createProfilePic);
 
   app.get("/v1/user/self/pic",
   bodyParser.raw({type: ["image/jpeg", "image/png", "image/jpg"], limit: "5mb"}),
@@ -72,6 +48,7 @@ app.delete("/v1/user/self/pic",
   basicAuthentication(),
 controller.deleteProfilePic);
 const db = require("./db");
+const logger = require('./utils/logger.js');
 db.sequelize.sync();
 
 app.get("*", function(req, res) {
